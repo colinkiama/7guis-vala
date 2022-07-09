@@ -1,7 +1,7 @@
 public class CounterApp : Gtk.Application {
     public CounterApp () {
         Object (
-            application_id: "com.github.colinkiama.seven-guis",
+            application_id: "com.github.colinkiama.counter",
             flags: ApplicationFlags.FLAGS_NONE
         );
     }

@@ -1,4 +1,5 @@
 counter_sources = [
-	'main.vala'
+	'Application.vala'
 ]
-counter_exe = executable('counter', sources, dependencies : dependencies)
+
+counter_exe = executable('counter', counter_sources, dependencies : dependencies)

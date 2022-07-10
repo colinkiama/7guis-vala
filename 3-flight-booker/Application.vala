@@ -31,6 +31,7 @@ public class FlightBookerApp : Gtk.Application {
         start_date_entry = new Gtk.Entry ();
         var start_date_entry_style_context = start_date_entry.get_style_context ();
         start_date_entry_style_context.add_class ("invalid");
+
         end_date_entry = new Gtk.Entry ();
         book_button = new Gtk.Button.with_label ("Book");
         flight_type_combo_box.set_model (_view_model.flight_types);
@@ -38,8 +39,6 @@ public class FlightBookerApp : Gtk.Application {
         Gtk.CellRendererText renderer = new Gtk.CellRendererText ();
         flight_type_combo_box.pack_start (renderer, true);
         flight_type_combo_box.set_cell_data_func (renderer, update_cell_layout_data);
-        // flight_type_combo_box.changed.connect (combo_box_changed);
-
         flight_type_combo_box.set_active (0);
 
 
@@ -59,8 +58,31 @@ public class FlightBookerApp : Gtk.Application {
     }
 
     public void setup_bindings () {
+        _view_model.start_date_validity_changed.connect (handle_start_date_validity_change);
+        _view_model.end_date_validity_changed.connect (handle_end_date_validity_change);
 
+        _view_model.bind_property ("start-date", start_date_entry, "text", GLib.BindingFlags.BIDIRECTIONAL);
+        _view_model.bind_property ("end-date", end_date_entry, "text", GLib.BindingFlags.BIDIRECTIONAL);
     }
+
+    public void handle_start_date_validity_change (bool is_valid) {
+        if (is_valid) {
+            start_date_entry.get_style_context ().remove_class ("invalid");
+            return;
+        }
+
+        start_date_entry.get_style_context ().add_class ("invalid");
+    }
+
+    public void handle_end_date_validity_change (bool is_valid) {
+        if (is_valid) {
+            end_date_entry.get_style_context ().remove_class ("invalid");
+            return;
+        }
+
+        end_date_entry.get_style_context ().add_class ("invalid");
+    }
+
 
     public void update_cell_layout_data (
         Gtk.CellLayout cell_layout,
@@ -86,18 +108,6 @@ public class FlightBookerApp : Gtk.Application {
         var text_cell = (Gtk.CellRendererText)cell;
         text_cell.text = flight_text;
     }
-
-    // public void combo_box_changed (Gtk.ComboBox combo_box) {
-    //     Gtk.TreeIter iter;
-    //     Value val;
-
-    //     combo_box.get_active_iter (out iter);
-    //     _view_model.flight_types.get_value (iter, 0, out val);
-
-    //     var selected_flight_type = (FlightType) val;
-
-    //     print ("Selection is: %s\n", selected_flight_type.to_string ());
-    // }
 
     public static int main (string[] args) {
         return new FlightBookerApp ().run (args);

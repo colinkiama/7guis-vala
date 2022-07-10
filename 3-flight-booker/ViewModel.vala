@@ -4,6 +4,9 @@ public class ViewModel : Object {
     private string _start_date = "";
     private string _end_date = "";
 
+    // Source: https://stackoverflow.com/a/15504877/7149232
+    private Regex _valid_date_regex = /^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]))\1|(?:(?:29|30)(\/|-|\.)(?:0?[13-9]|1[0-2])\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)0?2\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9])|(?:1[0-2]))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})$/; // vala-lint=space-before-paren, line-length, block-opening-brace-space-before
+
     public Gtk.ListStore flight_types { get; set; }
     public FlightType current_flight_type { get; set; }
     public bool is_start_date_valid {
@@ -36,7 +39,7 @@ public class ViewModel : Object {
         set {
             if (_start_date != value) {
                 _start_date = value;
-                print ("New Start Date value: %s\n", value);
+                is_start_date_valid = check_valid_date_constraints (value);
             }
         }
         get {
@@ -48,6 +51,7 @@ public class ViewModel : Object {
         set {
             if (_end_date != value) {
                 _end_date = value;
+                is_end_date_valid = check_valid_date_constraints (value);
             }
         }
         get {
@@ -65,5 +69,9 @@ public class ViewModel : Object {
         flight_types.set (iter, 0, FlightType.ONE_WAY, -1);
         flight_types.append (out iter);
         flight_types.set (iter, 0, FlightType.RETURN, -1);
+    }
+
+    public bool check_valid_date_constraints (string str) {
+        return _valid_date_regex.match (str);
     }
 }

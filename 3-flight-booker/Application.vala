@@ -29,9 +29,6 @@ public class FlightBookerApp : Gtk.Application {
 
         flight_type_combo_box = new Gtk.ComboBox ();
         start_date_entry = new Gtk.Entry ();
-        var start_date_entry_style_context = start_date_entry.get_style_context ();
-        start_date_entry_style_context.add_class ("invalid");
-
         end_date_entry = new Gtk.Entry ();
         book_button = new Gtk.Button.with_label ("Book");
         flight_type_combo_box.set_model (_view_model.flight_types);

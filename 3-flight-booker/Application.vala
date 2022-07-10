@@ -23,7 +23,7 @@ public class FlightBookerApp : Gtk.Application {
         // flight_type_combo_box.add_attribute (renderer, "text", 0);
         flight_type_combo_box.set_cell_data_func (renderer, update_cell_layout_data);
         flight_type_combo_box.changed.connect (combo_box_changed);
-
+        flight_type_combo_box.set_active (0);
         var vertical_stack = new Gtk.Box (Gtk.Orientation.VERTICAL, 4) {
             valign = Gtk.Align.START
         };
@@ -66,7 +66,7 @@ public class FlightBookerApp : Gtk.Application {
 
         var selected_flight_type = (FlightType) val;
 
-        print ("Selection is: %s", selected_flight_type.to_string ());
+        print ("Selection is: %s\n", selected_flight_type.to_string ());
 
     }
 

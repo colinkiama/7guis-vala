@@ -4,6 +4,7 @@ public class FlightBookerApp : Gtk.Application {
     private Gtk.Entry start_date_entry;
     private Gtk.Entry end_date_entry;
     private Gtk.Button book_button;
+    private Binding current_end_date_sensitivity_binding;
 
     public FlightBookerApp () {
         Object (
@@ -32,6 +33,15 @@ public class FlightBookerApp : Gtk.Application {
         end_date_entry = new Gtk.Entry ();
         book_button = new Gtk.Button.with_label ("Book");
         flight_type_combo_box.set_model (_view_model.flight_types);
+        flight_type_combo_box.changed.connect ((combo_box) => {
+            Gtk.TreeIter current_item;
+            combo_box.get_active_iter (out current_item);
+
+            Value val;
+            combo_box.get_model ().get_value (current_item, 0, out val);
+
+            _view_model.current_flight_type = (FlightType) val;
+        });
 
         Gtk.CellRendererText renderer = new Gtk.CellRendererText ();
         flight_type_combo_box.pack_start (renderer, true);
@@ -57,12 +67,12 @@ public class FlightBookerApp : Gtk.Application {
     public void setup_bindings () {
         _view_model.start_date_validity_changed.connect (handle_start_date_validity_change);
         _view_model.end_date_validity_changed.connect (handle_end_date_validity_change);
+        _view_model.flight_type_changed.connect (handle_flight_type_change);
 
         _view_model.bind_property ("start-date", start_date_entry, "text", GLib.BindingFlags.BIDIRECTIONAL);
         _view_model.bind_property ("end-date", end_date_entry, "text", GLib.BindingFlags.BIDIRECTIONAL);
-        _view_model.bind_property ("is-start-date-valid", end_date_entry, "sensitive", GLib.BindingFlags.SYNC_CREATE);
-        _view_model.bind_property ("current-flight-type", end_date_entry, "sensitive", GLib.BindingFlags.SYNC_CREATE,
-            flight_type_to_sensitivity_bool);
+
+        handle_flight_type_change (_view_model.current_flight_type);
     }
 
     /*
@@ -72,6 +82,23 @@ public class FlightBookerApp : Gtk.Application {
       * 3. When handling the flight type change event, call unbind() on the current flight type sensitivity binding 
       *    variable then replace the variable with a new binding based on the new flight type value.  
      */
+
+    public void handle_flight_type_change (FlightType next_flight_type) {
+        if (current_end_date_sensitivity_binding != null) {
+            current_end_date_sensitivity_binding.unbind ();
+        }
+
+        switch (next_flight_type) {
+            case FlightType.ONE_WAY:
+                current_end_date_sensitivity_binding = _view_model.bind_property ("current-flight-type", end_date_entry,
+                    "sensitive", GLib.BindingFlags.SYNC_CREATE, flight_type_to_sensitivity_bool);
+                break;
+            default:
+                current_end_date_sensitivity_binding = _view_model.bind_property ("is-start-date-valid", end_date_entry,
+                    "sensitive", GLib.BindingFlags.SYNC_CREATE);
+                break;
+        }
+    }
 
     public bool flight_type_to_sensitivity_bool (GLib.Binding binding, GLib.Value src_val, ref Value target_val) {
         var flight_type = (FlightType)src_val;

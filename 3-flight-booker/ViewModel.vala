@@ -7,8 +7,20 @@ public class ViewModel : Object {
     // Source: https://stackoverflow.com/a/15504877/7149232
     private Regex _valid_date_regex = /^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]))\1|(?:(?:29|30)(\/|-|\.)(?:0?[13-9]|1[0-2])\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)0?2\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9])|(?:1[0-2]))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})$/; // vala-lint=space-before-paren, line-length, block-opening-brace-space-before
 
+    private FlightType _current_flight_type;
+    public FlightType current_flight_type {
+        get {
+            return _current_flight_type;
+        }
+        set {
+            if (_current_flight_type != value) {
+                _current_flight_type = value;
+                flight_type_changed (value);
+            }
+        }
+    }
+
     public Gtk.ListStore flight_types { get; set; }
-    public FlightType current_flight_type { get; set; }
     public bool is_start_date_valid {
         get {
             return _is_start_date_valid;
@@ -61,6 +73,7 @@ public class ViewModel : Object {
 
     public signal void start_date_validity_changed (bool is_valid);
     public signal void end_date_validity_changed (bool is_valid);
+    public signal void flight_type_changed (FlightType next_flight_type);
 
     construct {
         flight_types = new Gtk.ListStore (1, typeof (FlightType));

@@ -75,14 +75,6 @@ public class FlightBookerApp : Gtk.Application {
         handle_flight_type_change (_view_model.current_flight_type);
     }
 
-    /*
-      * TODO: 
-      * 1. Store the end_date_entry sensitivity Binding variable. 
-      * 2. Whenever the flight type changes, invoke and event.
-      * 3. When handling the flight type change event, call unbind() on the current flight type sensitivity binding 
-      *    variable then replace the variable with a new binding based on the new flight type value.  
-     */
-
     public void handle_flight_type_change (FlightType next_flight_type) {
         if (current_end_date_sensitivity_binding != null) {
             current_end_date_sensitivity_binding.unbind ();

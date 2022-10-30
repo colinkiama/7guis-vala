@@ -8,3 +8,4 @@ dependencies = [
 
 subdir('1-counter')
 subdir('2-temperature-converter')
+subdir('3-flight-booker')

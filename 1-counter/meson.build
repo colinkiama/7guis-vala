@@ -1,9 +1,9 @@
 counter_sources = [
-    'main.vala'
+    'Application.vala'
 ]
 
-executable (
-    '7-guis',
+counter_exe = executable (
+    'counter',
     counter_sources,
     dependencies: dependencies,
     install: true

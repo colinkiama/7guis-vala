@@ -6,13 +6,4 @@ dependencies = [
     dependency('gtk4'),
 ]
 
-counter_sources = [
-    'main.vala'
-]
-
-executable (
-    '7-guis',
-    counter_sources,
-    dependencies: dependencies,
-    install: true
-)
+subdir('1-counter')

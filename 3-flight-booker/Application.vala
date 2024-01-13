@@ -1,8 +1,10 @@
 public class FlightBookerApp : Gtk.Application {
-    const string[] FLIGHT_TYPES = { "one-way flight", "flight return" };
+    const string[] FLIGHT_TYPES = { "one-way flight", "return flight" };
 
     string current_flight_type = "one-way flight";
     Regex valid_date_regex = /^(\d{2})\.(\d{2})\.(\d{4})$/;
+    DateTime? departure_date = null;
+    DateTime? return_date = null;
 
     Gtk.DropDown flight_type_drop_down;
     Gtk.Entry departure_date_entry;
@@ -23,16 +25,15 @@ public class FlightBookerApp : Gtk.Application {
             title = "Book Flight"
         };
 
-         Gtk.CssProvider css_provider = new Gtk.CssProvider ();
-         css_provider.load_from_resource ("com/github/colinkiama/flight-booker/app.css");
+        Gtk.CssProvider css_provider = new Gtk.CssProvider ();
+        css_provider.load_from_resource ("com/github/colinkiama/flight-booker/app.css");
 
-         Gtk.StyleContext.add_provider_for_display (Gdk.Display.get_default (),
+        Gtk.StyleContext.add_provider_for_display (Gdk.Display.get_default (),
             css_provider,
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         );
 
         flight_type_drop_down = new Gtk.DropDown.from_strings (FLIGHT_TYPES);
-
         flight_type_drop_down.notify["selected-item"].connect ((param_spec, item) => {
             current_flight_type = (string) FLIGHT_TYPES[flight_type_drop_down.selected];
             update_form_state ();
@@ -40,7 +41,28 @@ public class FlightBookerApp : Gtk.Application {
 
         departure_date_entry = new Gtk.Entry ();
         return_date_entry = new Gtk.Entry ();
+
         book_button = new Gtk.Button.with_label ("Book");
+        book_button.clicked.connect (() => {
+            string message;
+            if (current_flight_type == "one-way flight") {
+                message = @"You have booked a one-way flight on $(departure_date_entry.text).";
+            } else {
+                message = @"You have booked a round-trip flight departing on $(departure_date_entry.text) "
+                          + @"and returning on $(return_date_entry.text).";
+            }
+
+            var dialog = new Gtk.MessageDialog (
+                main_window,
+                Gtk.DialogFlags.DESTROY_WITH_PARENT | Gtk.DialogFlags.MODAL,
+                Gtk.MessageType.INFO,
+                Gtk.ButtonsType.OK,
+                message
+            );
+
+            dialog.response.connect ((response_id) => dialog.close ());
+            dialog.show ();
+        });
 
         var vertical_stack = new Gtk.Box (Gtk.Orientation.VERTICAL, 8) {
             valign = Gtk.Align.START
@@ -64,18 +86,15 @@ public class FlightBookerApp : Gtk.Application {
         bool is_departure_regex_valid = valid_date_regex.match (departure_date_entry.text);
         bool is_return_regex_valid = valid_date_regex.match (return_date_entry.text);
 
-        DateTime? departure_date = is_departure_regex_valid ? parse_date (departure_date_entry.text) : null;
-        DateTime? return_date = is_return_regex_valid ? parse_date (return_date_entry.text) : null;
+        departure_date = is_departure_regex_valid ? parse_date (departure_date_entry.text) : null;
+        return_date = is_return_regex_valid ? parse_date (return_date_entry.text) : null;
 
-        bool is_departure_date_valid = departure_date != null;
-        bool is_return_date_valid = return_date != null;
-
-        update_departure_field (is_departure_date_valid);
-        update_return_field (is_return_date_valid);
-        update_book_button (departure_date, return_date);
+        update_departure_field (departure_date != null);
+        update_return_field (return_date != null);
+        update_book_button ();
     }
 
-    private void update_book_button (DateTime? departure_date, DateTime? return_date) {
+    private void update_book_button () {
          if (current_flight_type == "one-way flight") {
             book_button.sensitive = departure_date != null;
         } else {
@@ -111,11 +130,7 @@ public class FlightBookerApp : Gtk.Application {
         }
     }
 
-    public static int main (string[] args) {
-        return new FlightBookerApp ().run (args);
-    }
-
-    public DateTime parse_date (string str) {
+    private DateTime parse_date (string str) {
         string[] date_vals = str.split (".");
         int day = int.parse (date_vals[0]);
         int month = int.parse (date_vals[1]);
@@ -123,4 +138,9 @@ public class FlightBookerApp : Gtk.Application {
 
         return new DateTime.local (year, month, day, 0, 0, 0);
     }
+
+    public static int main (string[] args) {
+        return new FlightBookerApp ().run (args);
+    }
+
 }

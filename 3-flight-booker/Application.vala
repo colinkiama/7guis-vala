@@ -5,8 +5,8 @@ public class FlightBookerApp : Gtk.Application {
     string current_flight_type = "one-way flight";
 
     private Gtk.DropDown flight_type_drop_down;
-    private Gtk.Entry start_date_entry;
-    private Gtk.Entry end_date_entry;
+    private Gtk.Entry departure_date_entry;
+    private Gtk.Entry return_date_entry;
     private Gtk.Button book_button;
 
     public FlightBookerApp () {
@@ -38,8 +38,8 @@ public class FlightBookerApp : Gtk.Application {
             update_form_state ();
         });
 
-        start_date_entry = new Gtk.Entry ();
-        end_date_entry = new Gtk.Entry ();
+        departure_date_entry = new Gtk.Entry ();
+        return_date_entry = new Gtk.Entry ();
         book_button = new Gtk.Button.with_label ("Book");
 
         var vertical_stack = new Gtk.Box (Gtk.Orientation.VERTICAL, 8) {
@@ -47,49 +47,71 @@ public class FlightBookerApp : Gtk.Application {
         };
 
         vertical_stack.append (flight_type_drop_down);
-        vertical_stack.append (start_date_entry);
-        vertical_stack.append (end_date_entry);
+        vertical_stack.append (departure_date_entry);
+        vertical_stack.append (return_date_entry);
         vertical_stack.append (book_button);
 
         main_window.set_child (vertical_stack);
         main_window.present ();
 
-        start_date_entry.changed.connect (update_form_state);
-        end_date_entry.changed.connect (update_form_state);
+        departure_date_entry.changed.connect (update_form_state);
+        return_date_entry.changed.connect (update_form_state);
 
         update_form_state ();
     }
 
     public void update_form_state () {
-        bool is_start_date_valid = valid_date_regex.match (start_date_entry.text);
-        bool is_end_date_valid = valid_date_regex.match (end_date_entry.text);
-        bool is_start_date_empty = start_date_entry.text == "";
-        bool is_end_date_empty = end_date_entry.text == "";
+        bool is_departure_regex_valid = valid_date_regex.match (departure_date_entry.text);
+        bool is_return_regex_valid = valid_date_regex.match (return_date_entry.text);
+
+        DateTime departure_date = is_departure_regex_valid ? parse_date (departure_date_entry.text) : null;
+        DateTime return_date = is_return_regex_valid ? parse_date (return_date_entry.text) : null;
+
+        bool is_departure_date_valid = departure_date != null;
+        bool is_return_date_valid = return_date != null;
+
+
+        if (departure_date_entry.text == "" || is_departure_date_valid) {
+            departure_date_entry.remove_css_class ("invalid");
+        } else {
+            departure_date_entry.add_css_class ("invalid");
+        }
 
         if (current_flight_type == "one-way flight") {
-            end_date_entry.sensitive = false;
-            end_date_entry.remove_css_class ("invalid");
-            book_button.sensitive = is_start_date_valid && !is_start_date_empty;
+            return_date_entry.sensitive = false;
+            return_date_entry.remove_css_class ("invalid");
         } else {
-            end_date_entry.sensitive = true;
-            book_button.sensitive = is_start_date_valid && !is_start_date_empty && is_end_date_valid
-                && !is_end_date_empty;
+            if (return_date_entry.text == "" || is_return_date_valid) {
+                return_date_entry.remove_css_class ("invalid");
+            } else {
+                return_date_entry.add_css_class ("invalid");
+            }
+
+            return_date_entry.sensitive = true;
         }
 
-        if (is_start_date_empty || is_start_date_valid) {
-            start_date_entry.remove_css_class ("invalid");
+        if (current_flight_type == "return flight") {
+            if (is_departure_date_valid && is_return_date_valid) {
+                TimeSpan difference = return_date.difference (departure_date);
+                book_button.sensitive = difference >= 0;
+            } else {
+                book_button.sensitive = false;
+            }
         } else {
-            start_date_entry.add_css_class ("invalid");
-        }
-
-        if (current_flight_type == "return flight" && !is_end_date_valid && !is_end_date_empty) {
-            end_date_entry.add_css_class ("invalid");
-        } else {
-            end_date_entry.remove_css_class ("invalid");
+            book_button.sensitive = is_departure_date_valid;
         }
     }
 
     public static int main (string[] args) {
         return new FlightBookerApp ().run (args);
+    }
+
+    public DateTime parse_date (string str) {
+        string[] date_vals = str.split (".");
+        int day = int.parse (date_vals[0]);
+        int month = int.parse (date_vals[1]);
+        int year = int.parse (date_vals[2]);
+
+        return new DateTime.local (year, month, day, 0, 0, 0);
     }
 }

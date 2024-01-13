@@ -64,21 +64,21 @@ public class FlightBookerApp : Gtk.Application {
     public void update_form_state () {
         if (current_flight_type == "one-way flight") {
             end_date_entry.sensitive = false;
-            end_date_entry.get_style_context ().remove_class ("invalid");
+            end_date_entry.remove_css_class ("invalid");
         } else {
             end_date_entry.sensitive = true;
         }
 
         if (start_date_entry.text == "" || valid_date_regex.match (start_date_entry.text)) {
-            start_date_entry.get_style_context ().remove_class ("invalid");
+            start_date_entry.remove_css_class ("invalid");
         } else {
-            start_date_entry.get_style_context ().add_class ("invalid");
+            start_date_entry.add_css_class ("invalid");
         }
 
         if (current_flight_type == "return flight" && end_date_entry.text != "" && !valid_date_regex.match (end_date_entry.text)) {
-            end_date_entry.get_style_context ().add_class ("invalid");
+            end_date_entry.add_css_class ("invalid");
         } else {
-            end_date_entry.get_style_context ().remove_class ("invalid");
+            end_date_entry.remove_css_class ("invalid");
         }
     }
 

@@ -1,13 +1,13 @@
 public class FlightBookerApp : Gtk.Application {
-    private Regex valid_date_regex = /^(\d{2})\.(\d{2})\.(\d{4})$/; // vala-lint=space-before-paren, line-length, block-opening-brace-space-before
+    const string[] FLIGHT_TYPES = { "one-way flight", "flight return" };
 
-    const string[] FLIGHT_TYPES = { "one-way flight", "return flight" };
     string current_flight_type = "one-way flight";
+    Regex valid_date_regex = /^(\d{2})\.(\d{2})\.(\d{4})$/;
 
-    private Gtk.DropDown flight_type_drop_down;
-    private Gtk.Entry departure_date_entry;
-    private Gtk.Entry return_date_entry;
-    private Gtk.Button book_button;
+    Gtk.DropDown flight_type_drop_down;
+    Gtk.Entry departure_date_entry;
+    Gtk.Entry return_date_entry;
+    Gtk.Button book_button;
 
     public FlightBookerApp () {
         Object (
@@ -60,23 +60,43 @@ public class FlightBookerApp : Gtk.Application {
         update_form_state ();
     }
 
-    public void update_form_state () {
+    private void update_form_state () {
         bool is_departure_regex_valid = valid_date_regex.match (departure_date_entry.text);
         bool is_return_regex_valid = valid_date_regex.match (return_date_entry.text);
 
-        DateTime departure_date = is_departure_regex_valid ? parse_date (departure_date_entry.text) : null;
-        DateTime return_date = is_return_regex_valid ? parse_date (return_date_entry.text) : null;
+        DateTime? departure_date = is_departure_regex_valid ? parse_date (departure_date_entry.text) : null;
+        DateTime? return_date = is_return_regex_valid ? parse_date (return_date_entry.text) : null;
 
         bool is_departure_date_valid = departure_date != null;
         bool is_return_date_valid = return_date != null;
 
+        update_departure_field (is_departure_date_valid);
+        update_return_field (is_return_date_valid);
+        update_book_button (departure_date, return_date);
+    }
 
+    private void update_book_button (DateTime? departure_date, DateTime? return_date) {
+         if (current_flight_type == "one-way flight") {
+            book_button.sensitive = departure_date != null;
+        } else {
+            if (departure_date != null && return_date != null) {
+                TimeSpan difference = return_date.difference (departure_date);
+                book_button.sensitive = difference >= 0;
+            } else {
+                book_button.sensitive = false;
+            }
+        }
+    }
+
+    private void update_departure_field (bool is_departure_date_valid) {
         if (departure_date_entry.text == "" || is_departure_date_valid) {
             departure_date_entry.remove_css_class ("invalid");
         } else {
             departure_date_entry.add_css_class ("invalid");
         }
+    }
 
+    private void update_return_field (bool is_return_date_valid) {
         if (current_flight_type == "one-way flight") {
             return_date_entry.sensitive = false;
             return_date_entry.remove_css_class ("invalid");
@@ -88,17 +108,6 @@ public class FlightBookerApp : Gtk.Application {
             }
 
             return_date_entry.sensitive = true;
-        }
-
-        if (current_flight_type == "return flight") {
-            if (is_departure_date_valid && is_return_date_valid) {
-                TimeSpan difference = return_date.difference (departure_date);
-                book_button.sensitive = difference >= 0;
-            } else {
-                book_button.sensitive = false;
-            }
-        } else {
-            book_button.sensitive = is_departure_date_valid;
         }
     }
 

@@ -28,11 +28,11 @@ public class CounterApp : Gtk.Application {
 
         box.append (label);
         box.append (count_button);
-        
+
         window.set_child (box);
         window.present ();
     }
-    
+
 }
 
 int main (string[] argv) {

@@ -1,6 +1,121 @@
+class State : Object {
+    private bool _is_start_date_valid = true;
+    private bool _is_end_date_valid = true;
+    private string _start_date = "";
+    private string _end_date = "";
+
+    // Source: https://stackoverflow.com/a/15504877/7149232
+    private Regex _valid_date_regex = /^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]))\1|(?:(?:29|30)(\/|-|\.)(?:0?[13-9]|1[0-2])\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)0?2\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9])|(?:1[0-2]))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})$/; // vala-lint=space-before-paren, line-length, block-opening-brace-space-before
+
+    private FlightType _current_flight_type;
+    public FlightType current_flight_type {
+        get {
+            return _current_flight_type;
+        }
+        set {
+            if (_current_flight_type != value) {
+                _current_flight_type = value;
+                flight_type_changed (value);
+            }
+        }
+    }
+
+    public GLib.ListStore flight_types { get; set; }
+    public bool is_start_date_valid {
+        get {
+            return _is_start_date_valid;
+        }
+
+        set {
+            if (_is_start_date_valid != value) {
+                _is_start_date_valid = value;
+                start_date_validity_changed (value);
+            }
+        }
+    }
+
+    public bool is_end_date_valid {
+        get {
+            return _is_end_date_valid;
+        }
+
+        set {
+            if (_is_end_date_valid != value) {
+                _is_end_date_valid = value;
+                end_date_validity_changed (value);
+            }
+        }
+    }
+
+    public string start_date {
+        set {
+            if (_start_date != value) {
+                _start_date = value;
+                is_start_date_valid = check_valid_date_constraints (value);
+            }
+        }
+        get {
+            return _start_date;
+        }
+    }
+
+    public string end_date {
+        set {
+            if (_end_date != value) {
+                _end_date = value;
+                is_end_date_valid = check_valid_date_constraints (value);
+            }
+        }
+        get {
+            return _end_date;
+        }
+    }
+
+    public signal void start_date_validity_changed (bool is_valid);
+    public signal void end_date_validity_changed (bool is_valid);
+    public signal void flight_type_changed (FlightType next_flight_type);
+
+    construct {
+        flight_types = new GLib.ListStore (typeof (FlightTypeInfo));
+        flight_types.append (new FlightTypeInfo (FlightType.ONE_WAY));
+        flight_types.append (new FlightTypeInfo (FlightType.RETURN));
+    }
+
+    public bool check_valid_date_constraints (string str) {
+        return _valid_date_regex.match (str);
+    }
+}
+
+public class FlightTypeInfo : Object {
+    public FlightType flight_type { get; set; }
+
+    public FlightTypeInfo (FlightType flight_type) {
+        Object (
+            flight_type: flight_type
+        );
+    }
+}
+
+public enum FlightType {
+    ONE_WAY,
+    RETURN;
+}
+
 public class FlightBookerApp : Gtk.Application {
-    private ViewModel _view_model = new ViewModel ();
-    private Gtk.ComboBox flight_type_combo_box;
+    public static string get_flight_label (FlightTypeInfo info) {
+        FlightType flight_type = info.flight_type;
+        switch (flight_type) {
+            case FlightType.ONE_WAY:
+                return "one-way flight";
+            case FlightType.RETURN:
+                return "return flight";
+            default:
+                return "";
+        }
+    }
+
+    private State state = new State ();
+    private Gtk.DropDown flight_type_drop_down;
     private Gtk.Entry start_date_entry;
     private Gtk.Entry end_date_entry;
     private Gtk.Button book_button;
@@ -12,6 +127,7 @@ public class FlightBookerApp : Gtk.Application {
             flags: ApplicationFlags.FLAGS_NONE
         );
     }
+
 
     protected override void activate () {
         var main_window = new Gtk.ApplicationWindow (this) {
@@ -28,26 +144,19 @@ public class FlightBookerApp : Gtk.Application {
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         );
 
-        flight_type_combo_box = new Gtk.ComboBox ();
+        flight_type_drop_down = new Gtk.DropDown (
+            state.flight_types,
+            new Gtk.CClosureExpression (typeof (string), null, {}, (Callback) FlightBookerApp.get_flight_label, null, null)
+        );
+
+        flight_type_drop_down.notify["selected-item"].connect ((param_spec, item) => {
+            FlightTypeInfo info = (FlightTypeInfo) state.flight_types.get_item (flight_type_drop_down.selected);
+            state.current_flight_type = info.flight_type;
+        });
+
         start_date_entry = new Gtk.Entry ();
         end_date_entry = new Gtk.Entry ();
         book_button = new Gtk.Button.with_label ("Book");
-        flight_type_combo_box.set_model (_view_model.flight_types);
-        flight_type_combo_box.changed.connect ((combo_box) => {
-            Gtk.TreeIter current_item;
-            combo_box.get_active_iter (out current_item);
-
-            Value val;
-            combo_box.get_model ().get_value (current_item, 0, out val);
-
-            _view_model.current_flight_type = (FlightType) val;
-        });
-
-        Gtk.CellRendererText renderer = new Gtk.CellRendererText ();
-        flight_type_combo_box.pack_start (renderer, true);
-        flight_type_combo_box.set_cell_data_func (renderer, update_cell_layout_data);
-        flight_type_combo_box.set_active (0);
-
 
         setup_bindings ();
 
@@ -55,7 +164,7 @@ public class FlightBookerApp : Gtk.Application {
             valign = Gtk.Align.START
         };
 
-        vertical_stack.append (flight_type_combo_box);
+        vertical_stack.append (flight_type_drop_down);
         vertical_stack.append (start_date_entry);
         vertical_stack.append (end_date_entry);
         vertical_stack.append (book_button);
@@ -65,14 +174,14 @@ public class FlightBookerApp : Gtk.Application {
     }
 
     public void setup_bindings () {
-        _view_model.start_date_validity_changed.connect (handle_start_date_validity_change);
-        _view_model.end_date_validity_changed.connect (handle_end_date_validity_change);
-        _view_model.flight_type_changed.connect (handle_flight_type_change);
+        state.start_date_validity_changed.connect (handle_start_date_validity_change);
+        state.end_date_validity_changed.connect (handle_end_date_validity_change);
+        state.flight_type_changed.connect (handle_flight_type_change);
 
-        _view_model.bind_property ("start-date", start_date_entry, "text", GLib.BindingFlags.BIDIRECTIONAL);
-        _view_model.bind_property ("end-date", end_date_entry, "text", GLib.BindingFlags.BIDIRECTIONAL);
+        state.bind_property ("start-date", start_date_entry, "text", GLib.BindingFlags.BIDIRECTIONAL);
+        state.bind_property ("end-date", end_date_entry, "text", GLib.BindingFlags.BIDIRECTIONAL);
 
-        handle_flight_type_change (_view_model.current_flight_type);
+        handle_flight_type_change (state.current_flight_type);
     }
 
     public void handle_flight_type_change (FlightType next_flight_type) {
@@ -82,11 +191,11 @@ public class FlightBookerApp : Gtk.Application {
 
         switch (next_flight_type) {
             case FlightType.ONE_WAY:
-                current_end_date_sensitivity_binding = _view_model.bind_property ("current-flight-type", end_date_entry,
+                current_end_date_sensitivity_binding = state.bind_property ("current-flight-type", end_date_entry,
                     "sensitive", GLib.BindingFlags.SYNC_CREATE, flight_type_to_sensitivity_bool);
                 break;
             default:
-                current_end_date_sensitivity_binding = _view_model.bind_property ("is-start-date-valid", end_date_entry,
+                current_end_date_sensitivity_binding = state.bind_property ("is-start-date-valid", end_date_entry,
                     "sensitive", GLib.BindingFlags.SYNC_CREATE);
                 break;
         }
@@ -123,32 +232,6 @@ public class FlightBookerApp : Gtk.Application {
         }
 
         end_date_entry.get_style_context ().add_class ("invalid");
-    }
-
-
-    public void update_cell_layout_data (
-        Gtk.CellLayout cell_layout,
-        Gtk.CellRenderer cell,
-        Gtk.TreeModel tree_model,
-        Gtk.TreeIter iter) {
-
-        Value val;
-        tree_model.get_value (iter, 0, out val);
-
-        FlightType selected_flight_type = (FlightType) val;
-        string flight_text = "";
-
-        switch (selected_flight_type) {
-            case FlightType.ONE_WAY:
-                flight_text = "one-way flight";
-                break;
-            case FlightType.RETURN:
-                flight_text = "return flight";
-                break;
-        }
-
-        var text_cell = (Gtk.CellRendererText)cell;
-        text_cell.text = flight_text;
     }
 
     public static int main (string[] args) {

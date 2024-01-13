@@ -8,15 +8,12 @@ gresource = gnome.compile_resources(
 
 flight_booker_sources = [
 	'Application.vala',
-	'FlightType.vala',
-	'FlightTypeInfo.vala',
-	'ViewModel.vala',
 ]
 
 
 flight_booker_exe = executable(
 	'flight-booker',
 	gresource,
-	flight_booker_sources, 
+	flight_booker_sources,
 	dependencies: dependencies
 )

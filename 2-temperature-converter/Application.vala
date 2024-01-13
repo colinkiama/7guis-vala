@@ -1,5 +1,34 @@
+class State : Object {
+    private double _celsius_temp = 0;
+    private double _fahrenheit_temp = 32;
+
+    public double celsius_temp {
+        set {
+            if (_celsius_temp != value) {
+                _celsius_temp = value;
+                fahrenheit_temp = (value * 9 / 5) + 32;
+            }
+        }
+        get {
+            return _celsius_temp;
+        }
+    }
+
+    public double fahrenheit_temp {
+        set {
+            if (_fahrenheit_temp != value) {
+                _fahrenheit_temp = value;
+                celsius_temp = (value - 32) / 9 * 5;
+            }
+        }
+        get {
+            return _fahrenheit_temp;
+        }
+    }
+}
+
 public class TempConverterApp : Gtk.Application {
-    private ViewModel _view_model = new ViewModel ();
+    private State state = new State ();
 
     public TempConverterApp () {
         Object (
@@ -16,10 +45,10 @@ public class TempConverterApp : Gtk.Application {
         };
 
         var celsius_entry = new Gtk.Entry () {
-            text = "0"
+            text = state.celsius_temp.to_string ()
         };
 
-        _view_model.bind_property ("celsius-temp", celsius_entry, "text", GLib.BindingFlags.BIDIRECTIONAL,
+        state.bind_property ("celsius-temp", celsius_entry, "text", GLib.BindingFlags.BIDIRECTIONAL,
             double_to_string,
             string_to_double
         );
@@ -34,10 +63,10 @@ public class TempConverterApp : Gtk.Application {
         celsius_box.append (celsius_label);
 
         var farenheit_entry = new Gtk.Entry () {
-            text = "32"
+            text = state.fahrenheit_temp.to_string ()
         };
 
-        _view_model.bind_property ("fahrenheit-temp", farenheit_entry, "text", GLib.BindingFlags.BIDIRECTIONAL,
+        state.bind_property ("fahrenheit-temp", farenheit_entry, "text", GLib.BindingFlags.BIDIRECTIONAL,
             double_to_string,
             string_to_double
         );
@@ -57,7 +86,7 @@ public class TempConverterApp : Gtk.Application {
         outer_box.append (new Gtk.Label ("="));
         outer_box.append (fahrenheit_box);
 
-        main_window.set_child (outer_box);
+        main_window.child = outer_box;
         main_window.present ();
     }
 

@@ -1,6 +1,5 @@
 public class FlightBookerApp : Gtk.Application {
-    // Source: https://stackoverflow.com/a/15504877/7149232
-    private Regex valid_date_regex = /^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]))\1|(?:(?:29|30)(\/|-|\.)(?:0?[13-9]|1[0-2])\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)0?2\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9])|(?:1[0-2]))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})$/; // vala-lint=space-before-paren, line-length, block-opening-brace-space-before
+    private Regex valid_date_regex = /^(\d{2})\.(\d{2})\.(\d{4})$/; // vala-lint=space-before-paren, line-length, block-opening-brace-space-before
 
     const string[] FLIGHT_TYPES = { "one-way flight", "return flight" };
     string current_flight_type = "one-way flight";
@@ -88,7 +87,6 @@ public class FlightBookerApp : Gtk.Application {
         } else {
             end_date_entry.remove_css_class ("invalid");
         }
-
     }
 
     public static int main (string[] args) {

@@ -1,14 +1,13 @@
 public class CounterApp : Gtk.Application {
-    public bool is_timer_running { get; private set; }
-    public TimeSpan duration;
-    public TimeSpan time_elapsed { get; private set; }
+    bool is_timer_running;
+    TimeSpan duration;
+    TimeSpan time_elapsed;
+    DateTime last_stored_time;
+    Gtk.ProgressBar timer_bar;
+    Gtk.Label elapsed_time_label;
 
-    private DateTime last_stored_time;
-    private Gtk.ProgressBar timer_bar;
-    private Gtk.Label elapsed_time_label;
-
-    // In milliseconds (ms)
-    const int TIMER_UPDATE_INTERVAL = 100;
+    const int TIMER_UPDATE_INTERVAL = 100; // In milliseconds (ms)
+    const int MAX_DURATION = 20; // In seconds
 
     public CounterApp () {
         Object (
@@ -19,13 +18,13 @@ public class CounterApp : Gtk.Application {
 
     protected override void activate () {
         var window = new Gtk.ApplicationWindow (this) {
-            default_width = 300,
+            default_width = 400,
             title = "Timer"
         };
 
         var timer_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 10);
         var timer_bar_label = new Gtk.Label ("Elapsed Time:");
-        var timer_bar = new Gtk.ProgressBar () {
+        timer_bar = new Gtk.ProgressBar () {
             hexpand = true,
             halign = Gtk.Align.FILL,
             valign = Gtk.Align.CENTER
@@ -38,17 +37,27 @@ public class CounterApp : Gtk.Application {
             halign = Gtk.Align.START
         };
 
-        var duration_label = new Gtk.Label ("Duration:");
-        var duration_slider = new Gtk.Scale.with_range (Gtk.Orientation.HORIZONTAL, 0, 30, 1) {
-            hexpand = true,
-            halign = Gtk.Align.FILL,
-            valign = Gtk.Align.CENTER
+        var duration_label = new Gtk.Label ("Duration:") {
+            valign = Gtk.Align.START
         };
 
+        var duration_slider = new Gtk.Scale.with_range (Gtk.Orientation.HORIZONTAL, 0, MAX_DURATION, 1) {
+            hexpand = true,
+            halign = Gtk.Align.FILL,
+        };
+
+        duration_slider.set_tooltip_text ("0.0s");
         duration_slider.value_changed.connect (() => {
-           duration = (TimeSpan) (duration_slider.get_value () * TimeSpan.SECOND);
-           start_timer ();
+            duration = (TimeSpan) (duration_slider.get_value () * TimeSpan.SECOND);
+            int64 seconds = duration / TimeSpan.SECOND;
+            string tooltip_text = "%lld.0s".printf (seconds);
+            duration_slider.set_tooltip_text (tooltip_text);
+            start_timer ();
         });
+
+        for (int i = 0; i <= MAX_DURATION; i++) {
+            duration_slider.add_mark (i, Gtk.PositionType.BOTTOM, null);
+        }
 
         var duration_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 10) {
             valign = Gtk.Align.CENTER
@@ -58,6 +67,9 @@ public class CounterApp : Gtk.Application {
         duration_box.append (duration_slider);
 
         var reset_button = new Gtk.Button.with_label ("Reset");
+        reset_button.clicked.connect (() => {
+            start_timer ();
+        });
 
         var box = new Gtk.Box (Gtk.Orientation.VERTICAL, 10) {
             margin_top = 20,
@@ -78,6 +90,7 @@ public class CounterApp : Gtk.Application {
     private void start_timer () {
         time_elapsed = 0;
         last_stored_time = new DateTime.now_utc ();
+        timer_bar.fraction = 1;
         if (!is_timer_running) {
             is_timer_running = true;
             Timeout.add (TIMER_UPDATE_INTERVAL, tick);
@@ -89,18 +102,19 @@ public class CounterApp : Gtk.Application {
         time_elapsed += current_time.difference (last_stored_time);
         int64 seconds = time_elapsed / TimeSpan.SECOND;
         int64 milliseconds = (time_elapsed - (seconds * TimeSpan.SECOND)) / TimeSpan.MILLISECOND;
-        bool should_continue = time_elapsed <= duration;
-
+        bool should_continue = time_elapsed < duration;
         last_stored_time = current_time;
-        print ("Time elapsed in seconds: %llu.%03llu\n", seconds, milliseconds);
 
         if (should_continue) {
-            elapsed_time_label.label = "%llu.%llus".printf (seconds, milliseconds / 100);
+            timer_bar.fraction = 1 - ((double) time_elapsed / (double) duration);
         } else {
             is_timer_running = false;
-            elapsed_time_label.label = "%llus".printf (seconds);
+            seconds = duration / TimeSpan.SECOND;
+            milliseconds = (duration - (seconds * TimeSpan.SECOND)) / TimeSpan.MILLISECOND;
+            timer_bar.fraction = 0;
         }
 
+        elapsed_time_label.label = "%lld.%llds".printf (seconds, milliseconds / 100);
         return should_continue;
     }
 }

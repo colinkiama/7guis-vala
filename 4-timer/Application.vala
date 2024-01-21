@@ -1,6 +1,17 @@
 using Gtk;
 
 public class CounterApp : Gtk.Application {
+    public bool is_running { get; private set; }
+    public TimeSpan length { get; construct; }
+    public TimeSpan time_elapsed { get; private set; }
+    int ticks = 0;
+
+    private DateTime last_stored_time;
+
+    // In milliseconds (ms)
+    const int TIMER_UPDATE_INTERVAL = 500;
+
+
     public CounterApp () {
         Object (
             application_id: "com.github.colinkiama.timer",
@@ -59,8 +70,27 @@ public class CounterApp : Gtk.Application {
 
         window.set_child (box);
         window.present ();
+
+        start_timer ();
     }
 
+    private void start_timer () {
+        last_stored_time = new DateTime.now_utc ();
+        Timeout.add (TIMER_UPDATE_INTERVAL, tick);
+    }
+
+    private bool tick () {
+        print ("tick!\n");
+        ticks ++;
+        var current_time = new DateTime.now_utc ();
+
+        time_elapsed += current_time.difference (last_stored_time);
+        int64 seconds = time_elapsed / TimeSpan.SECOND;
+        int64 milliseconds = (time_elapsed - (seconds * TimeSpan.SECOND)) / TimeSpan.MILLISECOND;
+        last_stored_time = current_time;
+        print ("Time elapsed in seconds: %llu.%03llu\n", seconds, milliseconds);
+        return ticks == 1000 ? false : true;
+    }
 }
 
 int main (string[] argv) {
